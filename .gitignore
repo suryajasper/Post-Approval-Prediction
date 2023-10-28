@@ -160,6 +160,7 @@ cython_debug/
 #.idea/
 
 social-media-post-approval-prediction-with-marky
+social-media-post-approval-prediction-with-marky.zip
 
 *.png
 *.csv
