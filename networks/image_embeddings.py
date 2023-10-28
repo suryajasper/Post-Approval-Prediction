@@ -64,18 +64,15 @@ class VGG16EmbeddingNetwork(nn.Module):
 
 class StructuralEmbeddingNetwork(nn.Module):
     def __init__(self,
-                 batch_size=16,
                  img_size=64,
                  num_channels=3,
                  embedding_size=1000):
         
         super(StructuralEmbeddingNetwork, self).__init__()
         
-        self.batch_size = batch_size
         self.num_channels = num_channels
         self.img_size = img_size
         self.embedding_size = embedding_size
-        self.device = device
         
         size_log2 = torch.log2(img_size)
         assert torch.ceil(size_log2) == torch.floor(size_log2), \
@@ -104,13 +101,13 @@ class StructuralEmbeddingNetwork(nn.Module):
         ]
         
         self.dense = nn.Sequential(
-            nn.Linear(in_features=batch_size*4096, out_features=batch_size*4096),
+            nn.Linear(in_features=4096, out_features=4096),
             self.relu,
             nn.Dropout2d(p=0.5),
         )
         
-        self.linear_start = nn.Linear(in_features=batch_size*32768, out_features=batch_size*4096)
-        self.linear_end = nn.Linear(in_features=batch_size*4096, out_features=batch_size*embedding_size)
+        self.linear_start = nn.Linear(in_features=32768, out_features=4096)
+        self.linear_end = nn.Linear(in_features=4096, out_features=embedding_size)
     
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         if len(x.shape) > 1:
