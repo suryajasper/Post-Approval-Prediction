@@ -1,7 +1,6 @@
 import torch
-from transformers import AutoTokenizer
 
-class Tokenizer:
+class TextTokenizer:
     def __init__(self):
         print('initializing BERT tokenizer')
         self.tokenizer = torch.hub.load('huggingface/pytorch-transformers', 'tokenizer', 'bert-base-uncased')
