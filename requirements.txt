@@ -3,3 +3,4 @@ numpy
 Pillow
 requests
 tqdm
+pandas
