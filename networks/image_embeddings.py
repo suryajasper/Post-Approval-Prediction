@@ -6,11 +6,11 @@ class VGG16EmbeddingNetwork(nn.Module):
     def __init__(self, 
                  img_size=256,
                  num_channels=3,
-                 device='cpu',
+               
                  precision='fp32',
                  num_conv_layers=5):
         
-        super.__init__(self)
+        super(VGG16EmbeddingNetwork, self).__init__()
         
         # ensure we can safely downscale our image
         assert(img_size % pow(2, num_conv_layers-1) == 0), \
@@ -67,10 +67,9 @@ class StructuralEmbeddingNetwork(nn.Module):
                  batch_size=16,
                  img_size=64,
                  num_channels=3,
-                 embedding_size=1000,
-                 device='cuda'):
+                 embedding_size=1000):
         
-        super.__init__(self)
+        super(StructuralEmbeddingNetwork, self).__init__()
         
         self.batch_size = batch_size
         self.num_channels = num_channels
@@ -90,28 +89,28 @@ class StructuralEmbeddingNetwork(nn.Module):
         
         self.conv_layers = [
             [
-                nn.Conv2d(in_channels=num_channels, out_channels=32, stride=conv_stride, device=self.device),
-                nn.Conv2d(in_channels=32, out_channels=32, stride=conv_stride, device=self.device),
+                nn.Conv2d(in_channels=num_channels, out_channels=32, stride=conv_stride),
+                nn.Conv2d(in_channels=32, out_channels=32, stride=conv_stride),
             ],
             [
-                nn.Conv2d(in_channels=32, out_channels=64, stride=conv_stride, device=self.device),
-                nn.Conv2d(in_channels=64, out_channels=64, stride=conv_stride, device=self.device),
+                nn.Conv2d(in_channels=32, out_channels=64, stride=conv_stride),
+                nn.Conv2d(in_channels=64, out_channels=64, stride=conv_stride),
             ],
             [
-                nn.Conv2d(in_channels=64, out_channels=128, stride=conv_stride, device=self.device),
-                nn.Conv2d(in_channels=128, out_channels=128, stride=conv_stride, device=self.device),
-                nn.Conv2d(in_channels=128, out_channels=128, stride=conv_stride, device=self.device),
+                nn.Conv2d(in_channels=64, out_channels=128, stride=conv_stride),
+                nn.Conv2d(in_channels=128, out_channels=128, stride=conv_stride),
+                nn.Conv2d(in_channels=128, out_channels=128, stride=conv_stride),
             ],
         ]
         
         self.dense = nn.Sequential(
-            nn.Linear(in_features=batch_size*4096, out_features=batch_size*4096, device=self.device),
+            nn.Linear(in_features=batch_size*4096, out_features=batch_size*4096),
             self.relu,
             nn.Dropout2d(p=0.5),
         )
         
-        self.linear_start = nn.Linear(in_features=batch_size*32768, out_features=batch_size*4096, device=self.device)
-        self.linear_end = nn.Linear(in_features=batch_size*4096, out_features=batch_size*embedding_size, device=self.device)
+        self.linear_start = nn.Linear(in_features=batch_size*32768, out_features=batch_size*4096)
+        self.linear_end = nn.Linear(in_features=batch_size*4096, out_features=batch_size*embedding_size)
     
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         if len(x.shape) > 1:
