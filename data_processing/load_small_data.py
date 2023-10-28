@@ -2,11 +2,9 @@ import os
 import pandas as pd
 import requests
 
-train_data_path = "./social-media-post-approval-prediction-with-marky/train.csv"
-test_data_path = "./social-media-post-approval-prediction-with-marky/test.csv"
+train_data_path = "./social-media-post-approval-prediction-with-marky/small_train.csv"
 image_path = "images"
-training_image_path = "images/training"
-test_image_path = "images/test"
+training_image_path = "images/small_training"
 
 def download_image(url, save_path):
     response = requests.get(url)
@@ -23,13 +21,10 @@ else:
 
 # Dataframes
 train = pd.read_csv(train_data_path)
-test = pd.read_csv(test_data_path)
 
 # Creates image directories if they do not already exist
-if not os.path.exists(training_image_path) or not os.path.exists(test_image_path):
-    os.mkdir(image_path)
+if not os.path.exists(training_image_path):
     os.mkdir(training_image_path)
-    os.mkdir(test_image_path)
 
 # Download all the training images
 for index, row in train.iterrows():
@@ -37,14 +32,5 @@ for index, row in train.iterrows():
     image_url = row['image'] 
     image_filename = os.path.join(training_image_path, f'image_{post_id}.png')
     # Checking if image is downloaded
-    if (not os.path.isfile(image_filename)):
-        download_image(image_url, image_filename)
-
-# Download all the testing images
-for index, row in test.iterrows():
-    post_id = row['id'] 
-    image_url = row['image'] 
-    image_filename = os.path.join(test_image_path, f'image_{post_id}.png')
-    # Downloads image if it is not already downloaded
     if (not os.path.isfile(image_filename)):
         download_image(image_url, image_filename)
