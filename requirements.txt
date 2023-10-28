@@ -3,4 +3,8 @@ numpy
 Pillow
 requests
 tqdm
-pandas
+boto3
+regex
+sentencepiece
+sacremoses
+importlib_metadata
