@@ -1,6 +1,10 @@
-# torch
 transformers
 numpy
 Pillow
 requests
 tqdm
+boto3
+regex
+sentencepiece
+sacremoses
+importlib_metadata
