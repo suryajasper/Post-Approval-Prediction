@@ -5,8 +5,7 @@ class TextImageAttention(nn.Module):
     def __init__(self,
                  text_embed_sizes: list(int),
                  image_embed_size: int,
-                 hidden_size: int,
-                 device='cuda'):
+                 hidden_size: int):
 
         super(TextImageAttention, self).__init__()
         
@@ -14,14 +13,14 @@ class TextImageAttention(nn.Module):
             hidden_size = min(image_embed_size, *text_embed_sizes)
         
         # define linear layers
-        self.image_layer = nn.Linear(in_features=image_embed_size, out_features=hidden_size, device=device)
+        self.image_layer = nn.Linear(in_features=image_embed_size, out_features=hidden_size)
         
         self.text_layers = [
-            nn.Linear(in_features=embed_size, out_features=hidden_size, device=device)
+            nn.Linear(in_features=embed_size, out_features=hidden_size)
                 for embed_size in text_embed_sizes
         ]
         
-        self.output_layer = nn.Linear(in_features=hidden_size, out_features=hidden_size, device=device)
+        self.output_layer = nn.Linear(in_features=hidden_size, out_features=hidden_size)
         
         # define attention parameters
         self.W = nn.Parameter(torch.Tensor(hidden_size, hidden_size), requires_grad=True)
