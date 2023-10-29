@@ -6,7 +6,7 @@ class TextTokenizer:
         self.tokenizer = torch.hub.load('huggingface/pytorch-transformers', 'tokenizer', 'bert-base-uncased')
         
         print('initializing BERT model')
-        self.model = torch.hub.load('huggingface/pytorch-transformers', 'model', 'bert-base-uncased')
+        self.model = torch.hub.load('huggingface/pytorch-transformers', 'model', 'bert-base-uncased').to('cuda')
     
     def get_embedding(self, input_texts) -> torch.Tensor:
         if isinstance(input_texts, str):
@@ -16,12 +16,13 @@ class TextTokenizer:
             input_texts = [text[:500] for text in input_texts]
         except:
             print('text trimming failed -> trying encoder')
+            pass
         
         try:
-            encoded = torch.tensor([self.tokenizer.encode(*input_texts)])
+            encoded = torch.tensor([self.tokenizer.encode(*input_texts, device='cuda')])
             text_embeddings = self.model(encoded).last_hidden_state
             text_embeddings = torch.mean(text_embeddings.squeeze(), dim=0)
             return text_embeddings
         except:
-            print('text encoding failed -> returning zero vector')
+            # print('text encoding failed -> returning zero vector')
             return torch.zeros((768))

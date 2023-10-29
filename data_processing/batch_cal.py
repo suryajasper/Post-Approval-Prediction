@@ -48,8 +48,8 @@ class CustomImageDataset(Dataset):
     def __getitem__(self, idx):
         # print(idx, self.img_labels['id'][idx])        
         id = self.img_labels['id'][idx]
-        caption = self.img_labels.iloc[idx, 4]
-        title = self.img_labels.iloc[idx, 5]
+        caption = self.img_labels['caption'][idx]
+        title = self.img_labels['parameters_chapter_title'][idx]
         img_path = self.img_dir+"/image_" + self.img_labels.iloc[idx, 0] + ".png"#os.path.join(self.img_dir, "image_" + self.img_labels.iloc[idx, 0] + ".png")
 
         text_from_image = self.text_in_images.iloc[idx, 2]

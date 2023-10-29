@@ -5,10 +5,19 @@ from torch.utils.data.dataloader import DataLoader
 import networks
 from data_processing import CustomImageDataset
 
+import argparse
+
 import time
 import csv
 import os
 import pickle
+
+parser = argparse.ArgumentParser(description='Argument Parser Example')
+
+parser.add_argument('--training', action='store_true', help='Training argument')
+parser.add_argument('--name', type=str, help='Name of model')
+
+args = parser.parse_args()
 
 torch.manual_seed(420)
 
@@ -30,7 +39,7 @@ device = 'cuda' #if torch.cuda.is_available() else 'cpu'
 
 # define hyperparameters
 learning_rate = 0.0015
-num_epochs = 100
+num_epochs = 30
 
 # initialize networks
 print('initializing networks')
@@ -49,22 +58,26 @@ test_image_text_data_path = "data/test_image_text.csv"
 train_image_path = "shrunken_images/training"
 test_image_path = "shrunken_images/test"
 
-extra = ''
-extra = 'final'
 
-train_loss_file_path = f"data/train_loss_bs{batch_size}{extra}.csv"
-train_accuracy_file_path = f"data/train_accuracy_bs{batch_size}{extra}.csv"
+training = args.training
+extra = args.name
 
-test_output_file = f"data/test_output_bs{batch_size}.csv"
+train_loss_file_path = f"data/train_loss_bs{batch_size}_{extra}.csv"
+train_accuracy_file_path = f"data/train_accuracy_bs{batch_size}_{extra}.csv"
 
-image_model_save_path = f'{MODEL_DIR}/post_image_model_latest_bs{batch_size}{extra}.pth'
-attention_model_save_path = f'{MODEL_DIR}/post_attention_model_latest_bs{batch_size}{extra}.pth'
-classifier_model_save_path = f'{MODEL_DIR}/post_classifier_model_latest_bs{batch_size}{extra}.pth'
+test_output_file = f"data/test_output_bs{batch_size}_{extra}.csv"
 
-training = True
+image_model_save_path = f'{MODEL_DIR}/post_image_model_latest_bs{batch_size}_{extra}.pth'
+attention_model_save_path = f'{MODEL_DIR}/post_attention_model_latest_bs{batch_size}_{extra}.pth'
+classifier_model_save_path = f'{MODEL_DIR}/post_classifier_model_latest_bs{batch_size}_{extra}.pth'
+
 
 if training:
     print('setting up for training')
+    
+    image_network.train()
+    attention_network.train()
+    classifier.train()
     
     train_dataset_save_path = f'{MODEL_DIR}/train_dataset_save.pkl'
     train_dataset = None
@@ -93,11 +106,19 @@ if training:
     loss_writer.writerow(['Epoch', 'Loss'])
     accuracy_writer.writerow(['Epoch', 'Accuracy'])
     
-    if os.path.exists(image_model_save_path):
-        print('loading image model checkpoints')
-        image_network.load_state_dict(torch.load(image_model_save_path))
-        attention_network.load_state_dict(torch.load(attention_model_save_path))
-        classifier.load_state_dict(torch.load(classifier_model_save_path))
+    if os.path.exists(classifier_model_save_path):
+        print('loading model checkpoints')
+        try:
+            image_state_dict = torch.load(image_model_save_path)
+            attention_state_dict = torch.load(attention_model_save_path)
+            classifier_state_dict = torch.load(classifier_model_save_path)
+            
+            image_network.load_state_dict(image_state_dict)
+            attention_network.load_state_dict(attention_state_dict)
+            classifier.load_state_dict(classifier_state_dict)
+            
+        except:
+            print('one or more pickle files are corrupted, starting from scratch')
 
     print('beginning training loop')
     for epoch in range(num_epochs):        
@@ -123,6 +144,7 @@ if training:
             # forward pass of networks
             img_embed = image_network(img)
             post_embed = attention_network(img_embed, text_embeddings)
+            # post_embed = torch.tensor(0)
             outputs = classifier(post_embed, labels)
             
             outputs = outputs.squeeze()
@@ -152,73 +174,82 @@ if training:
             end_time = time.time()
             iteration_time = end_time - start_time
 
-            print(f'Epoch {epoch + 1}/{num_epochs}, Batch {batch_idx + 1}/{len(train_dataloader)}, Loss: {loss.item():.4f}, Accuracy: {acc:.2f}%, , Time: {iteration_time:.2f} seconds')
             
-            if batch_idx % 5 == 0:
-                loss_file.flush()
-                accuracy_file.flush()
-                
-                if batch_idx > 0:
-                    torch.save(image_network.state_dict(), image_model_save_path)
-                    torch.save(attention_network.state_dict(), attention_model_save_path)
-                    torch.save(classifier.state_dict(), classifier_model_save_path)
+            if batch_idx % 20 == 0:
+                print(f'Epoch {epoch + 1}/{num_epochs}, Batch {batch_idx + 1}/{len(train_dataloader)}, Loss: {loss.item():.4f}, Accuracy: {acc:.2f}%, Time: {iteration_time:.2f} seconds')
 
         average_loss = running_loss / len(train_dataloader)
         print(f'Epoch {epoch + 1}/{num_epochs}, Average Loss: {average_loss:.4f}')
+        
+        
+        if os.path.exists(image_model_save_path):
+            os.remove(image_model_save_path)
+        if os.path.exists(attention_model_save_path):
+            os.remove(attention_model_save_path)
+        if os.path.exists(classifier_model_save_path):
+            os.remove(classifier_model_save_path)
+
+        torch.save(image_network.state_dict(), image_model_save_path)
+        torch.save(attention_network.state_dict(), attention_model_save_path)
+        torch.save(classifier.state_dict(), classifier_model_save_path)
+        
+        loss_file.flush()
+        accuracy_file.flush()
 
     
     loss_file.close()
     accuracy_file.close()
 
-else:
-    print('setting up for testing')
-    
-    test_dataset_save_path = f'{MODEL_DIR}/test_dataset_save.pkl'
-    test_dataset = None
-    
-    if os.path.exists(test_dataset_save_path) and False:
-        print(f'Found saved dataset. Loading from {test_dataset_save_path}')
-        with open(test_dataset_save_path, 'rb') as file:
-            test_dataset = pickle.load(file)
-    else:
-        print('Did not find existing dataset. Initializing...')
-        test_dataset = CustomImageDataset(test_data_path, test_image_path, train_image_text_data_path, testing=True)
-        with open(test_dataset_save_path, 'wb') as file:
-            pickle.dump(test_dataset, file)
-            print(f'Loaded data and saved dataset to {test_dataset_save_path}')
 
-    test_dataloader = DataLoader(test_dataset, batch_size, shuffle=False)
-    
+print('setting up for testing')
+
+test_dataset_save_path = f'{MODEL_DIR}/test_dataset_save.pkl'
+test_dataset = None
+
+if os.path.exists(test_dataset_save_path) and False:
+    print(f'Found saved dataset. Loading from {test_dataset_save_path}')
+    with open(test_dataset_save_path, 'rb') as file:
+        test_dataset = pickle.load(file)
+else:
+    print('Did not find existing dataset. Initializing...')
+    test_dataset = CustomImageDataset(test_data_path, test_image_path, train_image_text_data_path, testing=True)
+    with open(test_dataset_save_path, 'wb') as file:
+        pickle.dump(test_dataset, file)
+        print(f'Loaded data and saved dataset to {test_dataset_save_path}')
+
+test_dataloader = DataLoader(test_dataset, batch_size, shuffle=False)
+
+if not training:
     image_network.load_state_dict(torch.load(image_model_save_path))
     attention_network.load_state_dict(torch.load(attention_model_save_path))
     classifier.load_state_dict(torch.load(classifier_model_save_path))
-    
-    image_network.eval()
-    attention_network.eval()
-    classifier.eval()
-    
-    with torch.no_grad(), open(test_output_file, 'w', newline='') as test_out_file:
-        test_csv_writer = csv.writer(test_out_file)
-        test_csv_writer.writerow(('id', 'approved'))
-        for batch_idx, batch in enumerate(test_dataloader):
-            print('fuck', len(batch['ids']))
-            # ids = [''.join(id) for id in batch['ids']]
-            ids = batch['ids']
-            
-            img = batch['image'].float().to(device)
-            text_embeddings = batch['text_embeddings'].to(device)
-            labels = batch['labels'].float().to(device)
-            
-            # forward pass of networks
-            img_embed = image_network(img)
-            post_embed = attention_network(img_embed, text_embeddings)
-            outputs = classifier(post_embed, labels)
-            
-            for i, output in enumerate(outputs):
-                output = "true" if output >= 0.5 else "false"
-                test_csv_writer.writerow((ids[i], output))
-            
-            print(f'Batch {batch_idx}/{len(test_dataloader)}')
-            test_out_file.flush()
 
-        print(f'Done testing')
+image_network.eval()
+attention_network.eval()
+classifier.eval()
+
+with torch.no_grad(), open(test_output_file, 'w', newline='') as test_out_file:
+    test_csv_writer = csv.writer(test_out_file)
+    test_csv_writer.writerow(('id', 'approved'))
+    for batch_idx, batch in enumerate(test_dataloader):
+        # ids = [''.join(id) for id in batch['ids']]
+        ids = batch['ids']
+        
+        img = batch['image'].float().to(device)
+        text_embeddings = batch['text_embeddings'].to(device)
+        labels = batch['labels'].float().to(device)
+        
+        # forward pass of networks
+        img_embed = image_network(img)
+        post_embed = attention_network(img_embed, text_embeddings)
+        # post_embed = torch.tensor(0)
+        outputs = classifier(post_embed, labels)
+        
+        for i, output in enumerate(outputs):
+            output = "true" if output >= 0.5 else "false"
+            test_csv_writer.writerow((ids[i], output))
+        
+        print(f'Batch {batch_idx}/{len(test_dataloader)}')
+        test_out_file.flush()
+
+    print(f'Done testing')

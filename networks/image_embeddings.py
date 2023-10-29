@@ -65,7 +65,8 @@ class StructuralEmbeddingNetwork(nn.Module):
     def __init__(self,
                  img_size=64,
                  num_channels=3,
-                 embedding_size=1000):
+                 embedding_size=1000,
+                 max_pooling_layers=3):
         
         super(StructuralEmbeddingNetwork, self).__init__()
         
@@ -85,28 +86,34 @@ class StructuralEmbeddingNetwork(nn.Module):
         
         self.conv_layers = nn.ModuleList([
             nn.ModuleList([
-                nn.Conv2d(in_channels=3, out_channels=16, kernel_size=3, stride=1, padding=1),
-                nn.Conv2d(in_channels=16, out_channels=16, kernel_size=3, stride=1, padding=1),
-            ]), 
-            nn.ModuleList([
-                nn.Conv2d(in_channels=16, out_channels=32, kernel_size=3, stride=1, padding=1),
+                nn.Conv2d(in_channels=3, out_channels=32, kernel_size=3, stride=1, padding=1),
                 nn.Conv2d(in_channels=32, out_channels=32, kernel_size=3, stride=1, padding=1),
             ]), 
             nn.ModuleList([
                 nn.Conv2d(in_channels=32, out_channels=64, kernel_size=3, stride=1, padding=1),
                 nn.Conv2d(in_channels=64, out_channels=64, kernel_size=3, stride=1, padding=1),
-                nn.Conv2d(in_channels=64, out_channels=64, kernel_size=3, stride=1, padding=1),
+            ]), 
+            nn.ModuleList([
+                nn.Conv2d(in_channels=64, out_channels=128, kernel_size=3, stride=1, padding=1),
+                nn.Conv2d(in_channels=128, out_channels=128, kernel_size=3, stride=1, padding=1),
+                nn.Conv2d(in_channels=128, out_channels=128, kernel_size=3, stride=1, padding=1),
+            ]),
+            nn.ModuleList([
+                nn.Conv2d(in_channels=128, out_channels=256, kernel_size=3, stride=1, padding=1),
+                nn.Conv2d(in_channels=256, out_channels=256, kernel_size=3, stride=1, padding=1),
+                nn.Conv2d(in_channels=256, out_channels=256, kernel_size=3, stride=1, padding=1),
             ]),
         ])
         
         self.dense = nn.Sequential(
-            nn.Linear(in_features=2048, out_features=2048),
+            nn.Linear(in_features=4096, out_features=4096),
             self.relu,
-            # nn.Dropout2d(p=0.5),
         )
         
-        self.linear_start = nn.Linear(in_features=4096, out_features=2048)
-        self.linear_end = nn.Linear(in_features=2048, out_features=embedding_size)
+        self.dropout = nn.Dropout2d(p=0.5)
+        
+        self.linear_start = nn.Linear(in_features=4096*4, out_features=4096)
+        self.linear_end = nn.Linear(in_features=4096, out_features=embedding_size)
     
     def forward(self, x: torch.Tensor) -> torch.Tensor:        
         # scale down image to 64x64
@@ -121,18 +128,21 @@ class StructuralEmbeddingNetwork(nn.Module):
         assert size == 64, 'downscale failure in forward pass'
         
         # convolutional layers + maxpooling
-        for conv_group in self.conv_layers:
+        for i, conv_group in enumerate(self.conv_layers):
             for conv_layer in conv_group:
                 x = conv_layer(x)
                 x = self.relu(x)
-            x = self.maxpool(x)
+            if i < 3:
+                x = self.maxpool(x)
+            if i % 2 == 0:
+                x = self.dropout(x)
         
         x = x.view(x.shape[0], -1)
         
         # fully connected linear layers
         x = self.linear_start(x)
         x = self.relu(x)
-        # x = self.dense(x)
+        x = self.dense(x)
         x = self.dense(x)
         x = self.relu(x)
         x = self.linear_end(x)

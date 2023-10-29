@@ -59,9 +59,12 @@ def one_hot_encode(dataframe: pd.DataFrame) -> list:
             saved_data = pickle.load(f)
         param_names = saved_data["param_names"]
         category_names = saved_data["category_names"]
+        print(param_names)
+        print(category_names)
     else:
         print('OHE: could not find save file, generating OHE')
         param_names = sorted(params)
+        print(param_names)
         category_names = {
             param: sorted(filter(
                 lambda x : isinstance(x, str) or isinstance(x, numpy.bool_), 
@@ -69,6 +72,7 @@ def one_hot_encode(dataframe: pd.DataFrame) -> list:
             )) 
                 for param in param_names
         }
+        print(category_names)
         with open(SAVE_PATH, 'wb') as f:
             pickle.dump({"param_names": param_names, "category_names": category_names}, f)
 
