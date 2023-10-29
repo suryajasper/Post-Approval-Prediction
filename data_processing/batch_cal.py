@@ -64,7 +64,7 @@ class CustomImageDataset(Dataset):
         else:
             return image, text_embeddings, self.label_tensor[idx]
 
-train_data_path = "./social-media-post-approval-prediction-with-marky/small_train.csv"
+train_data_path = "./social-media-post-approval-prediction-with-marky/train.csv"
 shrunken_training_image_path = "shrunken_images/training"
 
 data = CustomImageDataset(train_data_path, shrunken_training_image_path)
