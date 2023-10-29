@@ -1,7 +1,7 @@
 import torch
 from torch import nn
 
-class PostClassifier:
+class PostClassifier(nn.Module):
     def __init__(self, embedding_size, num_labels):
         super(PostClassifier, self).__init__()
         
