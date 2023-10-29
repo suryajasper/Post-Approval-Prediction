@@ -7,9 +7,9 @@ import sys
 import one_hot_encoder
 
 current_directory = os.getcwd()
-parent_directory = os.path.dirname(current_directory)
-sys.path.append(parent_directory+"/networks")
-from networks import TextTokenizer
+# parent_directory = os.path.dirname(current_directory)
+sys.path.append(current_directory+"/networks")
+from bert_tokenize import TextTokenizer
 
 class CustomImageDataset(Dataset):
     def __init__(self, annotations_file, img_dir, testing=False, transform=None, target_transform=None):
@@ -19,6 +19,7 @@ class CustomImageDataset(Dataset):
         self.target_transform = target_transform
         self.tokenizer = TextTokenizer()
         self.label_tensor = one_hot_encoder.one_hot_encode(self.img_labels)
+        self.testing = testing
 
     def __len__(self):
         return len(self.img_labels)
@@ -60,15 +61,19 @@ class CustomImageDataset(Dataset):
             label = self.target_transform(label)
         #return image, id, caption, title, summary, tone, switchboard_template, theme, prompt_template, photo_template, has_logo
         if(not self.testing):
-            return image, text_embeddings, self.label_tensor[idx], self.img_labels.iloc[idx, 15]
+            return image, text_embeddings, self.label_tensor[idx], int(self.img_labels.iloc[idx, 15])
         else:
             return image, text_embeddings, self.label_tensor[idx]
 
-train_data_path = "./social-media-post-approval-prediction-with-marky/train.csv"
-shrunken_training_image_path = "shrunken_images/training"
+train_data_path = "data_processing/social-media-post-approval-prediction-with-marky/small_train.csv"
+shrunken_training_image_path = "data_processing/shrunken_images/training"
 
 data = CustomImageDataset(train_data_path, shrunken_training_image_path)
 batchsize = 32
 shuffle_bool = True
 
-testdata = DataLoader(data, 32, True)
+# testing
+# if __name__ == '__main__':
+#     testdata = DataLoader(data, 32, True)
+#     for idx, (image, text_embeddings, label_tensor, answer) in enumerate(testdata):
+#         print(idx, (image.shape, text_embeddings.shape, label_tensor.shape, answer))
