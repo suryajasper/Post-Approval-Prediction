@@ -8,3 +8,4 @@ regex
 sentencepiece
 sacremoses
 importlib_metadata
+pandas

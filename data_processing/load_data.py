@@ -1,6 +1,7 @@
 import os
 import pandas as pd
 import requests
+from tqdm import tqdm
 
 train_data_path = "./social-media-post-approval-prediction-with-marky/train.csv"
 test_data_path = "./social-media-post-approval-prediction-with-marky/test.csv"
@@ -31,6 +32,7 @@ if not os.path.exists(training_image_path) or not os.path.exists(test_image_path
     os.mkdir(training_image_path)
     os.mkdir(test_image_path)
 
+training_bar = tqdm(total=train.shape[0], desc="Downloading training images", unit="image")
 # Download all the training images
 for index, row in train.iterrows():
     post_id = row['id'] 
@@ -39,7 +41,9 @@ for index, row in train.iterrows():
     # Checking if image is downloaded
     if (not os.path.isfile(image_filename)):
         download_image(image_url, image_filename)
+    training_bar.update(1)
 
+testing_bar = tqdm(total=train.shape[0], desc="Downloading testing images", unit="image")
 # Download all the testing images
 for index, row in test.iterrows():
     post_id = row['id'] 
@@ -48,3 +52,4 @@ for index, row in test.iterrows():
     # Downloads image if it is not already downloaded
     if (not os.path.isfile(image_filename)):
         download_image(image_url, image_filename)
+    testing_bar.update(1)

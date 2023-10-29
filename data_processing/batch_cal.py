@@ -9,7 +9,7 @@ import one_hot_encoder
 current_directory = os.getcwd()
 parent_directory = os.path.dirname(current_directory)
 sys.path.append(parent_directory+"/networks")
-import bert_tokenize
+from networks import TextTokenizer
 
 class CustomImageDataset(Dataset):
     def __init__(self, annotations_file, img_dir, transform=None, target_transform=None):
@@ -17,7 +17,7 @@ class CustomImageDataset(Dataset):
         self.img_dir = img_dir
         self.transform = transform
         self.target_transform = target_transform
-        self.tokenizer = bert_tokenize.Tokenizer()
+        self.tokenizer = TextTokenizer()
         self.label_tensor = one_hot_encoder.one_hot_encode(self.img_labels)
 
     def __len__(self):
