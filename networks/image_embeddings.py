@@ -73,7 +73,7 @@ class StructuralEmbeddingNetwork(nn.Module):
         self.img_size = img_size
         self.embedding_size = embedding_size
         
-        size_log2 = torch.log2(img_size)
+        size_log2 = torch.log2(torch.tensor(img_size))
         assert torch.ceil(size_log2) == torch.floor(size_log2), \
             'image size must be a power of 2'
         
@@ -81,42 +81,39 @@ class StructuralEmbeddingNetwork(nn.Module):
         self.relu = nn.ReLU()
         self.softmax = nn.Softmax2d()
         
-        conv_stride = 2
+        self.downscale_conv = nn.Conv2d(in_channels=self.num_channels, out_channels=self.num_channels, kernel_size=3, stride=1, padding=1)
         
-        self.conv_layers = [
-            [
-                nn.Conv2d(in_channels=num_channels, out_channels=32, stride=conv_stride),
-                nn.Conv2d(in_channels=32, out_channels=32, stride=conv_stride),
-            ],
-            [
-                nn.Conv2d(in_channels=32, out_channels=64, stride=conv_stride),
-                nn.Conv2d(in_channels=64, out_channels=64, stride=conv_stride),
-            ],
-            [
-                nn.Conv2d(in_channels=64, out_channels=128, stride=conv_stride),
-                nn.Conv2d(in_channels=128, out_channels=128, stride=conv_stride),
-                nn.Conv2d(in_channels=128, out_channels=128, stride=conv_stride),
-            ],
-        ]
+        self.conv_layers = nn.ModuleList([
+            nn.ModuleList([
+                nn.Conv2d(in_channels=3, out_channels=32, kernel_size=3, stride=1, padding=1),
+                nn.Conv2d(in_channels=32, out_channels=32, kernel_size=3, stride=1, padding=1),
+            ]), 
+            nn.ModuleList([
+                nn.Conv2d(in_channels=32, out_channels=64, kernel_size=3, stride=1, padding=1),
+                nn.Conv2d(in_channels=64, out_channels=64, kernel_size=3, stride=1, padding=1),
+            ]), 
+            nn.ModuleList([
+                nn.Conv2d(in_channels=64, out_channels=128, kernel_size=3, stride=1, padding=1),
+                nn.Conv2d(in_channels=128, out_channels=128, kernel_size=3, stride=1, padding=1),
+                nn.Conv2d(in_channels=128, out_channels=128, kernel_size=3, stride=1, padding=1),
+            ]),
+        ])
         
         self.dense = nn.Sequential(
             nn.Linear(in_features=4096, out_features=4096),
             self.relu,
-            nn.Dropout2d(p=0.5),
+            # nn.Dropout2d(p=0.5),
         )
         
-        self.linear_start = nn.Linear(in_features=32768, out_features=4096)
+        self.linear_start = nn.Linear(in_features=8192, out_features=4096)
         self.linear_end = nn.Linear(in_features=4096, out_features=embedding_size)
     
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        if len(x.shape) > 1:
-            x = x.flatten()
-        
+    def forward(self, x: torch.Tensor) -> torch.Tensor:        
         # scale down image to 64x64
         size = self.img_size
         
         while size > 64:
-            x = nn.Conv2d(in_channels=self.num_channels, out_channels=self.num_channels, stride=1)
+            x = self.downscale_conv(x)
             x = self.relu(x)
             x = self.maxpool(x)
             size /= 2
@@ -124,11 +121,13 @@ class StructuralEmbeddingNetwork(nn.Module):
         assert size == 64, 'downscale failure in forward pass'
         
         # convolutional layers + maxpooling
-        for layer_convs in self.conv_layers:
-            for conv2d in layer_convs:
-                x = conv2d(x)
+        for conv_group in self.conv_layers:
+            for conv_layer in conv_group:
+                x = conv_layer(x)
                 x = self.relu(x)
             x = self.maxpool(x)
+        
+        x = x.view(x.shape[0], -1)
         
         # fully connected linear layers
         x = self.linear_start(x)
@@ -137,7 +136,6 @@ class StructuralEmbeddingNetwork(nn.Module):
         x = self.dense(x)
         x = self.relu(x)
         x = self.linear_end(x)
+        # x = self.softmax(x)
         
-        # normalize & reshape to output shape (batch_size, embedding_size)
-        x = self.softmax(x)
-        x = x.reshape((self.batch_size, self.embedding_size))
+        return x

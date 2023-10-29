@@ -1,4 +1,4 @@
-from image_embeddings import VGG16EmbeddingNetwork, StructuralEmbeddingNetwork
-from bert_tokenize import TextTokenizer
-from attention import TextImageAttention
-from post_classifier import PostClassifier
+from networks.image_embeddings import VGG16EmbeddingNetwork, StructuralEmbeddingNetwork
+from networks.bert_tokenize import TextTokenizer
+from networks.attention import TextImageAttention
+from networks.post_classifier import PostClassifier
