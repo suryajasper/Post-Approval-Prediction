@@ -1,20 +1,15 @@
 import os
+import torch
 from torch.utils.data import Dataset, DataLoader
 import pandas as pd
 from torchvision.io import read_image
 import sys
+import one_hot_encoder
 
-# Get the current directory
 current_directory = os.getcwd()
-
-# Get the path to the parent (higher-level) directory
 parent_directory = os.path.dirname(current_directory)
-
-# Add the parent directory to sys.path to enable importing
-sys.path.append(parent_directory)
-
-# Now you can import the Python script located in the higher-level folder
-import bert_tokenize.py
+sys.path.append(parent_directory+"/networks")
+import bert_tokenize
 
 class CustomImageDataset(Dataset):
     def __init__(self, annotations_file, img_dir, transform=None, target_transform=None):
@@ -22,6 +17,8 @@ class CustomImageDataset(Dataset):
         self.img_dir = img_dir
         self.transform = transform
         self.target_transform = target_transform
+        self.tokenizer = bert_tokenize.Tokenizer()
+        self.label_tensor = one_hot_encoder.one_hot_encode(self.img_labels)
 
     def __len__(self):
         return len(self.img_labels)
@@ -41,10 +38,12 @@ class CustomImageDataset(Dataset):
         has_logo = self.img_labels.iloc[idx, 12]
         img_path = self.img_dir+"/image_" + self.img_labels.iloc[idx, 0] + ".png"#os.path.join(self.img_dir, "image_" + self.img_labels.iloc[idx, 0] + ".png")
 
-        all_labels.append(id)
-        all_labels.append(caption)
-        all_labels.append(title)
-        all_labels.append(summary)
+        text_embed_size = 768
+
+        text_embeddings = torch.zeros((2, text_embed_size))
+        text_embeddings[0] = self.tokenizer.get_embedding(caption)
+        text_embeddings[1] = self.tokenizer.get_embedding(title)
+        
         all_labels.append(tone)
         all_labels.append(switchboard_template)
         all_labels.append(theme)
@@ -52,7 +51,7 @@ class CustomImageDataset(Dataset):
         all_labels.append(photo_template)
         all_labels.append(has_logo)
 
-        image = read_image(img_path)
+        image = read_image(img_path)[:3, ...]
         # Columns 7, 11, 
         label = self.img_labels.iloc[idx, 1]
         if self.transform:
@@ -60,7 +59,7 @@ class CustomImageDataset(Dataset):
         if self.target_transform:
             label = self.target_transform(label)
         #return image, id, caption, title, summary, tone, switchboard_template, theme, prompt_template, photo_template, has_logo
-        return image, all_labels
+        return image, text_embeddings, self.label_tensor[idx]
 
 train_data_path = "./social-media-post-approval-prediction-with-marky/small_train.csv"
 shrunken_training_image_path = "shrunken_images/training"
@@ -70,16 +69,3 @@ batchsize = 32
 shuffle_bool = True
 
 testdata = DataLoader(data, 32, True)
-
-
-'''
-train_features, train_labels = next(iter(testdata))
-
-print(train_labels)
-
-print(f"Feature batch shape: {train_features.size()}")
-print(f"Labels batch shape: {train_labels.size()}")
-img = train_features[0].squeeze()
-label = train_labels[0]
-print(f"Label: {label}")
-'''
