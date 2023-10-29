@@ -3,8 +3,8 @@ import pandas as pd
 import requests
 from tqdm import tqdm
 
-train_data_path = "./social-media-post-approval-prediction-with-marky/train.csv"
-test_data_path = "./social-media-post-approval-prediction-with-marky/test.csv"
+train_data_path = "data/train.csv"
+test_data_path = "data/test.csv"
 image_path = "images"
 training_image_path = "images/training"
 test_image_path = "images/test"

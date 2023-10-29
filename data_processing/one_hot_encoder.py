@@ -1,6 +1,7 @@
 import os
 import pandas as pd
 import torch
+from tqdm import tqdm
 
 params = [7, 8, 9, 10, 11, 12]
 
@@ -11,7 +12,7 @@ params = [7, 8, 9, 10, 11, 12]
 #train = pd.read_csv(train_data_path)
 #test = pd.read_csv(test_data_path)
 
-def one_hot_encode(dataframe) -> torch.Tensor:
+def one_hot_encode(dataframe : pd.DataFrame) -> torch.Tensor:
 
     allsets = [[] for _ in params]
 
@@ -26,6 +27,7 @@ def one_hot_encode(dataframe) -> torch.Tensor:
     
     print('one_hot_encoding variables')
 
+    training_bar = tqdm(total=dataframe.shape[0], desc="Extracting training text", unit="image")
     for index, row in dataframe.iterrows():
         line_one_hots = []
         for i in range(len(params)):
@@ -40,8 +42,7 @@ def one_hot_encode(dataframe) -> torch.Tensor:
             line_one_hots.extend(one_hot)
         
         all_one_hots.append(torch.tensor(line_one_hots))
-        if index % 300 == 0:
-            print(f'row {index}')
+        training_bar.update(1)
         
     combined_one_hot = all_one_hots
 
