@@ -40,7 +40,7 @@ class CustomImageDataset(Dataset):
         has_logo = self.img_labels.iloc[idx, 12]
         img_path = self.img_dir+"/image_" + self.img_labels.iloc[idx, 0] + ".png"#os.path.join(self.img_dir, "image_" + self.img_labels.iloc[idx, 0] + ".png")
 
-        text_from_image = self.text_in_images_file.iloc[idx, 1]
+        text_from_image = self.text_in_images_file.iloc[idx, 2]
 
         text_embed_size = 768
 

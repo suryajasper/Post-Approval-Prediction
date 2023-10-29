@@ -6,7 +6,7 @@ from PIL import Image
 from google.cloud import vision
 from google.cloud.vision_v1 import types
 
-os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "/Users/ash/Documents/GitHub_Projects/tamu-datathon-23-sub-project-fde75f68cf19.json"
+os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "/Users/garsh/Documents/tamu-datathon-23-sub-project-fde75f68cf19.json"
 
 client = vision.ImageAnnotatorClient()
 

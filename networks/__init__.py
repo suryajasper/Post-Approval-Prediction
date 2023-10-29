@@ -2,3 +2,4 @@ from networks.image_embeddings import VGG16EmbeddingNetwork, StructuralEmbedding
 from networks.bert_tokenize import TextTokenizer
 from networks.attention import TextImageAttention
 from networks.post_classifier import PostClassifier
+from networks.text_from_image import text_from_PNG_image
