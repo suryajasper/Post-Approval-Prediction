@@ -20,7 +20,6 @@ class VGG16EmbeddingNetwork(nn.Module):
         self.num_channels = num_channels
         
         self.use_fp16 = precision != 'fp32'
-        self.device = device
         
         self.conv2ds = self.build_conv_layers(num_conv_layers)
         self.relu = nn.ReLU()
