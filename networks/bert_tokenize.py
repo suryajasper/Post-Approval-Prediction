@@ -13,6 +13,6 @@ class TextTokenizer:
             input_texts = [input_texts]
         
         encoded = torch.tensor([self.tokenizer.encode(*input_texts)])
-        text_embeddings = self.model(encoded).pooler_output
+        text_embeddings = self.model(encoded).pooler_output.squeeze()
         
         return text_embeddings
