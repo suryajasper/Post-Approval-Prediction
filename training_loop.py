@@ -9,8 +9,9 @@ img_size = 64
 num_channels = 3
 
 img_embedding_size = 1000
-text_embedding_sizes = (500, 500, 500)
+text_embedding_size = 656
 post_embedding_size = 1000
+num_input_texts = 3
 num_labels = 10
 
 # device
@@ -23,7 +24,7 @@ num_epochs = 10
 # initialize networks
 print('initializing networks')
 image_network = networks.StructuralEmbeddingNetwork(img_size, num_channels, img_embedding_size).to(device)
-attention_network = networks.TextImageAttention(text_embedding_sizes, img_embedding_size, post_embedding_size).to(device)
+attention_network = networks.TextImageAttention(num_input_texts, text_embedding_size, img_embedding_size, post_embedding_size).to(device)
 classifier = networks.PostClassifier(post_embedding_size, num_labels).to(device)
 
 # Define loss function and optimizer
@@ -45,7 +46,7 @@ for epoch in range(num_epochs):
         
         img_embed = image_network(img)
         post_embed = attention_network(img_embed, text_embeddings)
-        outputs = classifier(post_embed, labels)
+        outputs = classifier(post_embed, labels.float())
         
         loss = criterion(outputs, expected.float())
         

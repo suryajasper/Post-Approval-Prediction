@@ -18,7 +18,8 @@ class PostClassifier(nn.Module):
         )
 
         self.label_network = nn.Sequential(
-            nn.Embedding(num_labels, 100),
+            nn.Linear(num_labels, 100),
+            nn.ReLU(),
             nn.Linear(100, 50),
             nn.ReLU(),
         )

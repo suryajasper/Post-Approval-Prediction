@@ -17,10 +17,14 @@ def one_hot_encode(dataframe) -> torch.Tensor:
 
     all_one_hots = []
 
+    print('gathering unique points')
+
     for index, row in dataframe.iterrows():
         for i in range(len(params)):
             if (row[params[i]] not in allsets[i]):
                 allsets[i].append(row[params[i]])
+    
+    print('one_hot_encoding variables')
 
     for index, row in dataframe.iterrows():
         line_one_hots = []
@@ -36,6 +40,8 @@ def one_hot_encode(dataframe) -> torch.Tensor:
             line_one_hots.extend(one_hot)
         
         all_one_hots.append(torch.tensor(line_one_hots))
+        if index % 300 == 0:
+            print(f'row {index}')
         
     combined_one_hot = all_one_hots
 
