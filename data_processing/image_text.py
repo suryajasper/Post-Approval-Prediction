@@ -24,28 +24,28 @@ test_image_path = "images/test"
 train = pd.read_csv(train_data_path)
 test = pd.read_csv(test_data_path)
 
-trainList = []
-train_new = train.iloc[:, [0]].copy()
+# trainList = []
+# train_new = train.iloc[:, [0]].copy()
     
-trainList = ['' for _ in range(train_new.shape[0])]
+# trainList = ['' for _ in range(train_new.shape[0])]
 
-training_bar = tqdm(total=len(trainList), desc="Extracting training text", unit="image")
-for index, row in train.iterrows():
-    image = f"{training_image_path}/image_" + row['id'] + ".png"
-    trainList[index]= (text_from_PNG_image(image))
-    if index % 100 == 0:
-        train_new['text_f_image'] = trainList
-        train_new.to_csv(image_train_path)
-    training_bar.update(1)
+# training_bar = tqdm(total=len(trainList), desc="Extracting training text", unit="image")
+# for index, row in train.iterrows():
+#     image = f"{training_image_path}/image_" + row['id'] + ".png"
+#     trainList[index]= (text_from_PNG_image(image))
+#     if index % 100 == 0:
+#         train_new['text_f_image'] = trainList
+#         train_new.to_csv(image_train_path)
+#     training_bar.update(1)
 
-train_new['text_f_image'] = trainList
-train_new.to_csv(image_train_path)
+# train_new['text_f_image'] = trainList
+# train_new.to_csv(image_train_path)
 
 testList = []
 test_new = test.iloc[:, [0]].copy()
 testList = ['' for _ in range(test_new.shape[0])]
 
-testing_bar = tqdm(total=len(testList), desc="Extracting training text", unit="image")
+testing_bar = tqdm(total=len(testList), desc="Extracting testing text", unit="image")
 for index, row in test.iterrows():
     image = f"{test_image_path}/image_" + row['id'] + ".png"
     testList[index]= (text_from_PNG_image(image))

@@ -5,16 +5,17 @@ from torch.utils.data.dataloader import DataLoader
 import networks
 from data_processing import CustomImageDataset
 
+import time
 import csv
 import os
 import pickle
 
-torch.manual_seed(69)
+torch.manual_seed(420)
 
 MODEL_DIR = 'models'
 
 # initialize data size
-batch_size = 16
+batch_size = 64
 img_size = 64
 num_channels = 3
 
@@ -22,13 +23,13 @@ img_embedding_size = 1000
 text_embedding_size = 768
 post_embedding_size = 1000
 num_input_texts = 3
-num_labels = 626
+num_labels = 423
 
 # device
-device = 'cuda' if torch.cuda.is_available() else 'cpu'
+device = 'cuda' #if torch.cuda.is_available() else 'cpu'
 
 # define hyperparameters
-learning_rate = 0.004
+learning_rate = 0.0015
 num_epochs = 100
 
 # initialize networks
@@ -41,22 +42,26 @@ classifier = networks.PostClassifier(post_embedding_size, num_labels).to(device)
 criterion = nn.BCELoss()
 optimizer = optim.Adam(classifier.parameters(), lr=learning_rate)
 
-print('initializing dataloader')
-train_data_path = "data/small_train.csv"
+train_data_path = "data/train.csv"
 test_data_path = "data/test.csv"
 train_image_text_data_path = "data/train_image_text.csv"
 test_image_text_data_path = "data/test_image_text.csv"
 train_image_path = "shrunken_images/training"
 test_image_path = "shrunken_images/test"
 
-loss_file_path = "data/train_loss.csv"
-accuracy_file_path = "data/train_accuracy.csv"
+extra = ''
+extra = 'final'
 
-image_model_save_path = f'{MODEL_DIR}/post_image_model_latest.pth'
-attention_model_save_path = f'{MODEL_DIR}/post_attention_model_latest.pth'
-classifier_model_save_path = f'{MODEL_DIR}/post_classifier_model_latest.pth'
+train_loss_file_path = f"data/train_loss_bs{batch_size}{extra}.csv"
+train_accuracy_file_path = f"data/train_accuracy_bs{batch_size}{extra}.csv"
 
-training = False
+test_output_file = f"data/test_output_bs{batch_size}.csv"
+
+image_model_save_path = f'{MODEL_DIR}/post_image_model_latest_bs{batch_size}{extra}.pth'
+attention_model_save_path = f'{MODEL_DIR}/post_attention_model_latest_bs{batch_size}{extra}.pth'
+classifier_model_save_path = f'{MODEL_DIR}/post_classifier_model_latest_bs{batch_size}{extra}.pth'
+
+training = True
 
 if training:
     print('setting up for training')
@@ -64,7 +69,7 @@ if training:
     train_dataset_save_path = f'{MODEL_DIR}/train_dataset_save.pkl'
     train_dataset = None
     
-    if os.path.exists(train_dataset_save_path):
+    if os.path.exists(train_dataset_save_path) and False:
         print(f'Found saved dataset. Loading from {train_dataset_save_path}')
         with open(train_dataset_save_path, 'rb') as file:
             train_dataset = pickle.load(file)
@@ -79,15 +84,30 @@ if training:
 
     train_losses = []
     train_accuracies = []
+    
+    loss_file = open(train_loss_file_path, mode='a', newline='')
+    accuracy_file = open(train_accuracy_file_path, mode='a', newline='')
+    
+    loss_writer = csv.writer(loss_file)
+    accuracy_writer = csv.writer(accuracy_file)
+    loss_writer.writerow(['Epoch', 'Loss'])
+    accuracy_writer.writerow(['Epoch', 'Accuracy'])
+    
+    if os.path.exists(image_model_save_path):
+        print('loading image model checkpoints')
+        image_network.load_state_dict(torch.load(image_model_save_path))
+        attention_network.load_state_dict(torch.load(attention_model_save_path))
+        classifier.load_state_dict(torch.load(classifier_model_save_path))
 
-    for epoch in range(num_epochs):
-        print(f'Starting epoch {epoch}')
-        
+    print('beginning training loop')
+    for epoch in range(num_epochs):        
         epoch_correct = 0
         epoch_samples = 0
         running_loss = 0.0
         
         for batch_idx, (img, text_embeddings, labels, expected) in enumerate(train_dataloader):
+            start_time = time.time()
+            
             img = img.float().to(device)
             text_embeddings = text_embeddings.to(device)
             labels = labels.float().to(device)
@@ -120,21 +140,35 @@ if training:
             train_losses.append(loss.item())
             train_accuracies.append(acc)
             
+            loss_writer.writerow([epoch, loss.item()])
+            accuracy_writer.writerow([epoch, acc])
+            
             # backpropagation
             loss.backward()
             
             # gradient descent step
             optimizer.step()
+            
+            end_time = time.time()
+            iteration_time = end_time - start_time
 
-            if batch_idx % 10 == 0:
-                print(f'Epoch {epoch + 1}/{num_epochs}, Batch {batch_idx}/{len(train_dataloader)}, Loss: {loss.item():.4f}, Accuracy: {acc:.2f}%')
+            print(f'Epoch {epoch + 1}/{num_epochs}, Batch {batch_idx + 1}/{len(train_dataloader)}, Loss: {loss.item():.4f}, Accuracy: {acc:.2f}%, , Time: {iteration_time:.2f} seconds')
+            
+            if batch_idx % 5 == 0:
+                loss_file.flush()
+                accuracy_file.flush()
+                
+                if batch_idx > 0:
+                    torch.save(image_network.state_dict(), image_model_save_path)
+                    torch.save(attention_network.state_dict(), attention_model_save_path)
+                    torch.save(classifier.state_dict(), classifier_model_save_path)
 
         average_loss = running_loss / len(train_dataloader)
         print(f'Epoch {epoch + 1}/{num_epochs}, Average Loss: {average_loss:.4f}')
 
-        torch.save(image_network.state_dict(), image_model_save_path)
-        torch.save(attention_network.state_dict(), attention_model_save_path)
-        torch.save(classifier.state_dict(), classifier_model_save_path)
+    
+    loss_file.close()
+    accuracy_file.close()
 
 else:
     print('setting up for testing')
@@ -142,7 +176,7 @@ else:
     test_dataset_save_path = f'{MODEL_DIR}/test_dataset_save.pkl'
     test_dataset = None
     
-    if os.path.exists(test_dataset_save_path):
+    if os.path.exists(test_dataset_save_path) and False:
         print(f'Found saved dataset. Loading from {test_dataset_save_path}')
         with open(test_dataset_save_path, 'rb') as file:
             test_dataset = pickle.load(file)
@@ -153,7 +187,7 @@ else:
             pickle.dump(test_dataset, file)
             print(f'Loaded data and saved dataset to {test_dataset_save_path}')
 
-    test_dataloader = DataLoader(test_dataset, batch_size, shuffle=True)
+    test_dataloader = DataLoader(test_dataset, batch_size, shuffle=False)
     
     image_network.load_state_dict(torch.load(image_model_save_path))
     attention_network.load_state_dict(torch.load(attention_model_save_path))
@@ -163,42 +197,28 @@ else:
     attention_network.eval()
     classifier.eval()
     
-    test_losses = []
-    test_accuracies = []
-    
-    test_correct = 0
-    test_samples = 0
-    running_loss = 0.0
-    
-    with torch.no_grad():
-        for batch_idx, (img, text_embeddings, labels) in enumerate(test_dataloader):
-            print('shapes', img.shape, text_embeddings.shape, labels.shape)
-            img = img.float().to(device)
-            text_embeddings = text_embeddings.to(device)
-            labels = labels.float().to(device)
+    with torch.no_grad(), open(test_output_file, 'w', newline='') as test_out_file:
+        test_csv_writer = csv.writer(test_out_file)
+        test_csv_writer.writerow(('id', 'approved'))
+        for batch_idx, batch in enumerate(test_dataloader):
+            print('fuck', len(batch['ids']))
+            # ids = [''.join(id) for id in batch['ids']]
+            ids = batch['ids']
+            
+            img = batch['image'].float().to(device)
+            text_embeddings = batch['text_embeddings'].to(device)
+            labels = batch['labels'].float().to(device)
             
             # forward pass of networks
             img_embed = image_network(img)
             post_embed = attention_network(img_embed, text_embeddings)
             outputs = classifier(post_embed, labels)
-
-            # compute loss
-            loss = criterion(outputs, labels)
-
-            # compute accuracy
-            predicted = (outputs > 0.5).float()
-            test_correct += (predicted == labels).sum().item()
-            test_samples += labels.size(0)
-            acc = (test_correct / test_samples) * 100  # Compute accuracy as a percentage
-
-            # store test loss and accuracy values
-            test_losses.append(loss.item())
-            test_accuracies.append(acc)
             
-            if batch_idx % 10 == 0:
-                print(f'Batch {batch_idx}/{len(test_dataloader)}, Loss: {(sum(test_losses)/len(test_losses)):.4f}, Accuracy: {(sum(test_accuracies)/len(test_accuracies)):.2f}%')
+            for i, output in enumerate(outputs):
+                output = "true" if output >= 0.5 else "false"
+                test_csv_writer.writerow((ids[i], output))
+            
+            print(f'Batch {batch_idx}/{len(test_dataloader)}')
+            test_out_file.flush()
 
-        average_test_loss = sum(test_losses) / len(test_losses)
-        average_test_acc = sum(test_accuracies) / len(test_accuracies)
-
-        print(f'Test Results - Loss: {average_test_loss:.4f}, Accuracy: {average_test_acc:.2f}%')
+        print(f'Done testing')

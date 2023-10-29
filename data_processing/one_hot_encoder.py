@@ -1,18 +1,22 @@
 import os
 import pandas as pd
 import torch
+import numpy
 from tqdm import tqdm
+import pickle
 
-params = [7, 8, 9, 10, 11, 12]
+params = [
+    'user_edited',
+    'parameters_tone',
+    'parameters_switchboard_template_name',
+    'parameters_theme',
+    'parameters_prompt_template_name',
+    'has_logo',
+]
 
-#train_data_path = "./social-media-post-approval-prediction-with-marky/small_train.csv"
-#test_data_path = "./social-media-post-approval-prediction-with-marky/test.csv"
+SAVE_PATH = "one_hot_encoding.pkl"
 
-# Dataframes
-#train = pd.read_csv(train_data_path)
-#test = pd.read_csv(test_data_path)
-
-def one_hot_encode(dataframe : pd.DataFrame) -> torch.Tensor:
+def one_hot_encode_legacy(dataframe : pd.DataFrame) -> torch.Tensor:
 
     allsets = [[] for _ in params]
 
@@ -47,3 +51,40 @@ def one_hot_encode(dataframe : pd.DataFrame) -> torch.Tensor:
     combined_one_hot = all_one_hots
 
     return combined_one_hot
+
+def one_hot_encode(dataframe: pd.DataFrame) -> list:
+    if os.path.exists(SAVE_PATH):
+        print('OHE: loading saved one-hot-encoding')
+        with open(SAVE_PATH, 'rb') as f:
+            saved_data = pickle.load(f)
+        param_names = saved_data["param_names"]
+        category_names = saved_data["category_names"]
+    else:
+        print('OHE: could not find save file, generating OHE')
+        param_names = sorted(params)
+        category_names = {
+            param: sorted(filter(
+                lambda x : isinstance(x, str) or isinstance(x, numpy.bool_), 
+                dataframe[param].unique()
+            )) 
+                for param in param_names
+        }
+        with open(SAVE_PATH, 'wb') as f:
+            pickle.dump({"param_names": param_names, "category_names": category_names}, f)
+
+    encoded_tensors = []
+    for _, row in tqdm(dataframe.iterrows(), total=len(dataframe), desc="Encoding Progress"):
+        encoding = []
+        for param in param_names:
+            param_value = row[param]
+            unique_categories = category_names[param]
+            one_hot = [0] * len(unique_categories)
+            for i, category in enumerate(unique_categories):
+                if category == param_value:
+                    one_hot[i] = 1
+                    break
+            encoding.extend(one_hot)
+                
+        encoded_tensors.append(torch.tensor(encoding, dtype=torch.int))
+    
+    return encoded_tensors

@@ -85,28 +85,28 @@ class StructuralEmbeddingNetwork(nn.Module):
         
         self.conv_layers = nn.ModuleList([
             nn.ModuleList([
-                nn.Conv2d(in_channels=3, out_channels=32, kernel_size=3, stride=1, padding=1),
+                nn.Conv2d(in_channels=3, out_channels=16, kernel_size=3, stride=1, padding=1),
+                nn.Conv2d(in_channels=16, out_channels=16, kernel_size=3, stride=1, padding=1),
+            ]), 
+            nn.ModuleList([
+                nn.Conv2d(in_channels=16, out_channels=32, kernel_size=3, stride=1, padding=1),
                 nn.Conv2d(in_channels=32, out_channels=32, kernel_size=3, stride=1, padding=1),
             ]), 
             nn.ModuleList([
                 nn.Conv2d(in_channels=32, out_channels=64, kernel_size=3, stride=1, padding=1),
                 nn.Conv2d(in_channels=64, out_channels=64, kernel_size=3, stride=1, padding=1),
-            ]), 
-            nn.ModuleList([
-                nn.Conv2d(in_channels=64, out_channels=128, kernel_size=3, stride=1, padding=1),
-                nn.Conv2d(in_channels=128, out_channels=128, kernel_size=3, stride=1, padding=1),
-                nn.Conv2d(in_channels=128, out_channels=128, kernel_size=3, stride=1, padding=1),
+                nn.Conv2d(in_channels=64, out_channels=64, kernel_size=3, stride=1, padding=1),
             ]),
         ])
         
         self.dense = nn.Sequential(
-            nn.Linear(in_features=4096, out_features=4096),
+            nn.Linear(in_features=2048, out_features=2048),
             self.relu,
             # nn.Dropout2d(p=0.5),
         )
         
-        self.linear_start = nn.Linear(in_features=8192, out_features=4096)
-        self.linear_end = nn.Linear(in_features=4096, out_features=embedding_size)
+        self.linear_start = nn.Linear(in_features=4096, out_features=2048)
+        self.linear_end = nn.Linear(in_features=2048, out_features=embedding_size)
     
     def forward(self, x: torch.Tensor) -> torch.Tensor:        
         # scale down image to 64x64
@@ -132,7 +132,7 @@ class StructuralEmbeddingNetwork(nn.Module):
         # fully connected linear layers
         x = self.linear_start(x)
         x = self.relu(x)
-        x = self.dense(x)
+        # x = self.dense(x)
         x = self.dense(x)
         x = self.relu(x)
         x = self.linear_end(x)

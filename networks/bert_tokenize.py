@@ -12,7 +12,16 @@ class TextTokenizer:
         if isinstance(input_texts, str):
             input_texts = [input_texts]
         
-        encoded = torch.tensor([self.tokenizer.encode(*input_texts)])
-        text_embeddings = self.model(encoded).pooler_output.squeeze()
+        try:
+            input_texts = [text[:500] for text in input_texts]
+        except:
+            print('text trimming failed -> trying encoder')
         
-        return text_embeddings
+        try:
+            encoded = torch.tensor([self.tokenizer.encode(*input_texts)])
+            text_embeddings = self.model(encoded).last_hidden_state
+            text_embeddings = torch.mean(text_embeddings.squeeze(), dim=0)
+            return text_embeddings
+        except:
+            print('text encoding failed -> returning zero vector')
+            return torch.zeros((768))
