@@ -12,7 +12,7 @@ sys.path.append(parent_directory+"/networks")
 from networks import TextTokenizer
 
 class CustomImageDataset(Dataset):
-    def __init__(self, annotations_file, img_dir, transform=None, target_transform=None):
+    def __init__(self, annotations_file, img_dir, testing=False, transform=None, target_transform=None):
         self.img_labels = pd.read_csv(annotations_file)
         self.img_dir = img_dir
         self.transform = transform
@@ -59,7 +59,10 @@ class CustomImageDataset(Dataset):
         if self.target_transform:
             label = self.target_transform(label)
         #return image, id, caption, title, summary, tone, switchboard_template, theme, prompt_template, photo_template, has_logo
-        return image, text_embeddings, self.label_tensor[idx]
+        if(not self.testing):
+            return image, text_embeddings, self.label_tensor[idx], self.img_labels.iloc[idx, 15]
+        else:
+            return image, text_embeddings, self.label_tensor[idx]
 
 train_data_path = "./social-media-post-approval-prediction-with-marky/small_train.csv"
 shrunken_training_image_path = "shrunken_images/training"
