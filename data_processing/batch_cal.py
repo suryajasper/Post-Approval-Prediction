@@ -12,9 +12,10 @@ sys.path.append(current_directory+"/networks")
 from bert_tokenize import TextTokenizer
 
 class CustomImageDataset(Dataset):
-    def __init__(self, annotations_file, img_dir, testing=False, transform=None, target_transform=None):
+    def __init__(self, annotations_file, img_dir, text_in_images_file, testing=False, transform=None, target_transform=None):
         self.img_labels = pd.read_csv(annotations_file)
         self.img_dir = img_dir
+        self.text_in_images_file = text_in_images_file
         self.transform = transform
         self.target_transform = target_transform
         self.tokenizer = TextTokenizer()
@@ -39,11 +40,14 @@ class CustomImageDataset(Dataset):
         has_logo = self.img_labels.iloc[idx, 12]
         img_path = self.img_dir+"/image_" + self.img_labels.iloc[idx, 0] + ".png"#os.path.join(self.img_dir, "image_" + self.img_labels.iloc[idx, 0] + ".png")
 
+        text_from_image = self.text_in_images_file.iloc[idx, 1]
+
         text_embed_size = 768
 
-        text_embeddings = torch.zeros((2, text_embed_size))
+        text_embeddings = torch.zeros((3, text_embed_size))
         text_embeddings[0] = self.tokenizer.get_embedding(caption)
         text_embeddings[1] = self.tokenizer.get_embedding(title)
+        text_embeddings[2] = self.tokenizer.get_embedding(text_from_image)
         
         all_labels.append(tone)
         all_labels.append(switchboard_template)
@@ -67,8 +71,10 @@ class CustomImageDataset(Dataset):
 
 train_data_path = "data_processing/social-media-post-approval-prediction-with-marky/small_train.csv"
 shrunken_training_image_path = "data_processing/shrunken_images/training"
+text_from_images_training = "./social-media-post-approval-prediction-with-marky/trainimage.csv"
+#text_from_images_test = "./social-media-post-approval-prediction-with-marky/testimage.csv"
 
-data = CustomImageDataset(train_data_path, shrunken_training_image_path)
+data = CustomImageDataset(train_data_path, shrunken_training_image_path, text_from_images_training)
 batchsize = 32
 shuffle_bool = True
 
