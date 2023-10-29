@@ -17,8 +17,4 @@ After downloading the image data, the text within each image needs to be parsed 
 
 To ensure that the convolutional neural network learns only important features of the image data, run data_processing/shrink_images.py to reduce the image sizes. Defaulting to convolutional downscaling in structural embedding network will marginally introduce nuance at the expense of higher computational costs.
 
-## Running the model
-
-**Work in progress**
-
 Full writeup can be found on devpost
